@@ -1,0 +1,15 @@
+{
+  "version": 2,
+  "dgSpecHash": "qvwRNpoP3ig=",
+  "success": true,
+  "projectFilePath": "C:\\Users\\jacob\\source\\repos\\YoutubeDownloader\\YoutubeDownloader\\YoutubeDownloader.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\jacob\\.nuget\\packages\\anglesharp\\1.1.2\\anglesharp.1.1.2.nupkg.sha512",
+    "C:\\Users\\jacob\\.nuget\\packages\\cliwrap\\3.6.6\\cliwrap.3.6.6.nupkg.sha512",
+    "C:\\Users\\jacob\\.nuget\\packages\\htmlagilitypack\\1.11.70\\htmlagilitypack.1.11.70.nupkg.sha512",
+    "C:\\Users\\jacob\\.nuget\\packages\\system.text.encoding.codepages\\8.0.0\\system.text.encoding.codepages.8.0.0.nupkg.sha512",
+    "C:\\Users\\jacob\\.nuget\\packages\\youtubeexplode\\6.4.3\\youtubeexplode.6.4.3.nupkg.sha512",
+    "C:\\Users\\jacob\\.nuget\\packages\\youtubeexplode.converter\\6.4.3\\youtubeexplode.converter.6.4.3.nupkg.sha512"
+  ],
+  "logs": []
+}
