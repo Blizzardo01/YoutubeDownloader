@@ -53,11 +53,14 @@
         <TextBlock Grid.Column="1" Grid.Row="2" Text="Audio Available" HorizontalAlignment="Center" Margin="5"></TextBlock>
         
         <!-- Video Streams from YT Listed-->
-        <DataGrid Grid.Column="0" Grid.Row="3" ItemsSource="{Binding VideoStreams}" AutoGenerateColumns="True"
-                  Margin="10" HeadersVisibility="Column" IsReadOnly="True" />
+        <DataGrid Grid.Column="0" Grid.Row="3" ItemsSource="{Binding VideoStreams}" AutoGeneratingColumn="DataGrid_AutoGeneratingColumn"
+                  Margin="10" HeadersVisibility="Column" IsReadOnly="True" MouseDoubleClick="VideoGrid_MouseDoubleClick"/>
 
         <!-- Audio Streams from YT Listed-->
-        <DataGrid Grid.Column="1" Grid.Row="3" ItemsSource="{Binding AudioStreams}" AutoGenerateColumns="True"
-                  Margin="10" HeadersVisibility="Column" IsReadOnly="True" />
+        <DataGrid Grid.Column="1" Grid.Row="3" ItemsSource="{Binding AudioStreams}" AutoGeneratingColumn="DataGrid_AutoGeneratingColumn"
+                  Margin="10" HeadersVisibility="Column" IsReadOnly="True" MouseDoubleClick="AudioGrid_MouseDoubleClick"/>
+        
+        
+        
     </Grid>
 </Window>

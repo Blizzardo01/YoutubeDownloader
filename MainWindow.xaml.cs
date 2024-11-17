@@ -17,6 +17,8 @@ using System.Windows.Shapes;
 using YoutubeExplode;
 using YoutubeExplode.Converter;
 using YoutubeExplode.Videos.Streams;
+using AngleSharp.Html.Dom.Events;
+using System.Diagnostics;
 
 namespace YoutubeDownloader
 {
@@ -148,7 +150,8 @@ namespace YoutubeDownloader
                     Quality = stream.VideoQuality.Label,
                     Resolution = $"{stream.VideoResolution.Width}x{stream.VideoResolution.Height}",
                     Bitrate = stream.Bitrate.BitsPerSecond,
-                    Url = stream.Url
+                    Url = stream.Url,
+                    Title = videoTitle
 
 
                 });
@@ -163,14 +166,39 @@ namespace YoutubeDownloader
                     Quality = "Audio Only",
                     Resolution = "N/A",
                     Bitrate = stream.Bitrate.BitsPerSecond,
-                    Url = stream.Url
+                    Url = stream.Url,
+                    Title = videoTitle
                 });
+            }
+        }
+
+        private void VideoGrid_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+        {
+            if (sender is System.Windows.Controls.DataGrid dataGrid && dataGrid.SelectedItem is StreamInfo stream)
+            {
+                string title = videoTitle;
+                var detailsWindow = new Download_Details(stream, title, savedURL);
+                detailsWindow.Show();
+            }
+        }
+
+        private void AudioGrid_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+        {
+
+        }
+
+        private void DataGrid_AutoGeneratingColumn(object sender, DataGridAutoGeneratingColumnEventArgs e)
+        {
+            if (e.PropertyName == "Title")
+            {
+                e.Cancel = true; //Canceling the generation of Title (Some titles are crazy long)
             }
         }
     }
 
     public class StreamInfo
     {
+        public string Title { get; set; }
         public string Quality { get; set; }
         public string Resolution { get; set; }
         public long Bitrate { get; set; }
