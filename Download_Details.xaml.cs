@@ -41,7 +41,11 @@ namespace YoutubeDownloader
             try
             {
 
-                // Choose a file path for saving
+
+
+
+
+                //Choose a file path for saving
                 var saveFileDialog = new Microsoft.Win32.SaveFileDialog
                 {
                     FileName = _title,
@@ -65,7 +69,7 @@ namespace YoutubeDownloader
                     }
 
                     //Downloading Stream
-                    bool success = await StreamVideoMp4(_url, tempAudioPath, tempVideoPath,ffmpegPath, filePath);
+                    bool success = await StreamVideoMp4(_url, tempAudioPath, tempVideoPath, ffmpegPath, filePath, _streamInfo);
                     if (success)
                     {
                         MessageBox.Show("Download complete!", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
@@ -85,86 +89,78 @@ namespace YoutubeDownloader
         }
 
 
-        public static async Task<bool> StreamVideoMp4(string url, string audioPath, string videoPath, string ffmpegPath, string outputPath)
+        public static async Task<bool> StreamVideoMp4(string url, string audioPath, string videoPath, string ffmpegPath, string outputPath, StreamInfo stream)
         {
-
-            try
-            {
-                var youtube = new YoutubeClient();
-                var streamManifest = await youtube.Videos.Streams.GetManifestAsync(url);
+            
 
 
-                //Selecting Streams to use
+                try
+                {
+                    var youtube = new YoutubeClient();
+                    var streamManifest = await youtube.Videos.Streams.GetManifestAsync(url);
+
+                // Download video
+
                 var streamInfoAudio = streamManifest.GetAudioOnlyStreams().GetWithHighestBitrate();
-                var streamInfoVideo = streamManifest.GetVideoOnlyStreams().Where(s => s.Container == Container.Mp4).GetWithHighestVideoQuality();
+                var streamInfoVideo = streamManifest.GetVideoOnlyStreams().Where(s => s.Bitrate == stream.Bitrate);
 
-                //Download Streams
-                var videoDownloadTask = youtube.Videos.Streams.DownloadAsync(streamInfoVideo, videoPath).AsTask();
+
+                var videoDownloadTask = youtube.Videos.Streams.DownloadAsync(streamInfoVideo.First(), videoPath).AsTask();
                 var audioDownloadTask = youtube.Videos.Streams.DownloadAsync(streamInfoAudio, audioPath).AsTask();
 
                 await Task.WhenAll(videoDownloadTask, audioDownloadTask);
 
-
-
-                //Mux Streams using FFmpeg
+                // Mux streams using FFmpeg
                 if (string.IsNullOrEmpty(ffmpegPath) || !IsFfmpegValid(ffmpegPath))
-                {
-                    MessageBox.Show("Invalid FFmpeg path.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                    return false;
-
-                }
-                var ffmpegArguments = $"-i \"{videoPath}\" -i \"{audioPath}\" -c:v copy -c:a aac -preset fast \"{outputPath}.mp4\"";
-
-                var process = new Process
-                {
-                    StartInfo = new ProcessStartInfo
                     {
-                        FileName = ffmpegPath,
-                        Arguments = ffmpegArguments,
-                        RedirectStandardOutput = true,
-                        RedirectStandardError = true,
-                        UseShellExecute = false,
-                        CreateNoWindow = true
+                        MessageBox.Show("Invalid FFmpeg path.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                        return false;
                     }
-                };
 
-                process.Start();
+                    var ffmpegArguments = $"-i \"{videoPath}\" -i \"{audioPath}\" -c:v copy -c:a aac -preset fast \"{outputPath}.mp4\"";
 
-                //Read output/error asynchronously
-                var outputTask = process.StandardOutput.ReadToEndAsync();
-                var errorTask = process.StandardError.ReadToEndAsync();
+                    var process = new Process
+                    {
+                        StartInfo = new ProcessStartInfo
+                        {
+                            FileName = ffmpegPath,
+                            Arguments = ffmpegArguments,
+                            RedirectStandardOutput = true,
+                            RedirectStandardError = true,
+                            UseShellExecute = false,
+                            CreateNoWindow = true
+                        }
+                    };
 
+                    process.Start();
 
-                await process.WaitForExitAsync();
-                var output = await outputTask;
-                var error = await errorTask;
+                    // Read output/error asynchronously
+                    var outputTask = process.StandardOutput.ReadToEndAsync();
+                    var errorTask = process.StandardError.ReadToEndAsync();
 
-                if (process.ExitCode != 0)
-                {
-                    Console.WriteLine($"FFmpeg failed: {error}");
-                    return false; //signaling failure
+                    await process.WaitForExitAsync();
+                    var output = await outputTask;
+                    var error = await errorTask;
+
+                    if (process.ExitCode != 0)
+                    {
+                        MessageBox.Show($"FFmpeg failed: {error}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                        return false; // Signal failure
+                    }
+
+                    // Clean up temporary files
+                    if (File.Exists(videoPath)) File.Delete(videoPath);
+                    if (File.Exists(audioPath)) File.Delete(audioPath);
+
+                    MessageBox.Show("Download and muxing complete.", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+                    return true; // Signal success
                 }
-
-                //Clean up temporary files
-                if (File.Exists(videoPath)) File.Delete(videoPath);
-                if (File.Exists(audioPath)) File.Delete(audioPath);
-
-                Console.WriteLine("Download and muxing complete.");
-                return true; //Signal success
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error: {ex.Message}");
-                return false; //Signal failure
-
-            }
-
-
-
-
-
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Error: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return false; // Signal failure
+                }
         }
-
 
 
         public static bool IsFfmpegInstalled(out string ffmpegPath)
@@ -251,7 +247,6 @@ namespace YoutubeDownloader
                         RedirectStandardError = true,
                         UseShellExecute = false,
                         CreateNoWindow = true
-
                     }
                 };
 
@@ -260,7 +255,7 @@ namespace YoutubeDownloader
                 string error = process.StandardError.ReadToEnd();
                 process.WaitForExit();
 
-                if(process.ExitCode == 0)
+                if (process.ExitCode == 0)
                 {
                     MessageBox.Show($"FFmpeg validation passed:\n{output}", "FFmpeg Valid");
                     return true;
@@ -274,7 +269,6 @@ namespace YoutubeDownloader
                 MessageBox.Show($"Error during FFmpeg validation:\n{ex.Message}", "FFmpeg Validation Error");
                 return false;
             }
-
         }
     } 
 }

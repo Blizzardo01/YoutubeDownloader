@@ -19,6 +19,7 @@ using YoutubeExplode.Converter;
 using YoutubeExplode.Videos.Streams;
 using AngleSharp.Html.Dom.Events;
 using System.Diagnostics;
+using YoutubeExplode.Common;
 
 namespace YoutubeDownloader
 {
@@ -34,8 +35,6 @@ namespace YoutubeDownloader
         private static string videoTitle = String.Empty;
         private static HttpClient _httpClient = new HttpClient();
         private static YoutubeClient youtube = new YoutubeClient();
-
-
 
 
         public MainWindow()
@@ -147,11 +146,13 @@ namespace YoutubeDownloader
             {
                 VideoStreams.Add(new StreamInfo
                 {
-                    Quality = stream.VideoQuality.Label,
-                    Resolution = $"{stream.VideoResolution.Width}x{stream.VideoResolution.Height}",
-                    Bitrate = stream.Bitrate.BitsPerSecond,
+                    Quality = stream.VideoQuality,
+                    Resolution = stream.VideoResolution,
+                    Bitrate = stream.Bitrate,
                     Url = stream.Url,
-                    Title = videoTitle
+                    Title = videoTitle,
+                    size = stream.Size,
+                    container = stream.Container
 
 
                 });
@@ -163,11 +164,13 @@ namespace YoutubeDownloader
                 AudioStreams.Add(new StreamInfo
                 {
 
-                    Quality = "Audio Only",
-                    Resolution = "N/A",
-                    Bitrate = stream.Bitrate.BitsPerSecond,
+                    Quality = null,
+                    Resolution = null,
+                    Bitrate = stream.Bitrate,
                     Url = stream.Url,
-                    Title = videoTitle
+                    Title = videoTitle,
+                    size = stream.Size,
+                    container = stream.Container
                 });
             }
         }
@@ -199,9 +202,11 @@ namespace YoutubeDownloader
     public class StreamInfo
     {
         public string Title { get; set; }
-        public string Quality { get; set; }
-        public string Resolution { get; set; }
-        public long Bitrate { get; set; }
+        public VideoQuality? Quality { get; set; }
+        public Resolution? Resolution { get; set; }
+        public Bitrate Bitrate { get; set; }
         public string Url { get; set; }
+        public FileSize size { get; set; }
+        public Container container { get; set; }
     }
 }

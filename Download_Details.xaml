@@ -21,10 +21,10 @@
             <TextBlock Text="Bitrate:" FontWeight="Bold" />
             <TextBlock Text="{Binding Bitrate}" Margin="0,0,0,10" />
 
-            <TextBlock Text="URL:" FontWeight="Bold" />
-            <TextBlock Text="{Binding Url}" TextWrapping="Wrap" Margin="0,0,0,10" />
+            <!--<TextBlock Text="URL:" FontWeight="Bold" />
+            <TextBlock Text="{Binding Url}" TextWrapping="Wrap" Margin="0,0,0,10" /> -->
 
-            <Button Content="Download" HorizontalAlignment="Left" Margin="0,10,0,0" Click="DownloadButton_Click" />
+            <Button Content="Download" HorizontalAlignment="Left" Margin="0,10,0,0" Click="DownloadButton_Click" /> 
 
         </StackPanel>
 
