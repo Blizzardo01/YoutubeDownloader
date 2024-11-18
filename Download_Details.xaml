@@ -24,7 +24,10 @@
             <!--<TextBlock Text="URL:" FontWeight="Bold" />
             <TextBlock Text="{Binding Url}" TextWrapping="Wrap" Margin="0,0,0,10" /> -->
 
-            <Button Content="Download" HorizontalAlignment="Left" Margin="0,10,0,0" Click="DownloadButton_Click" /> 
+            <Button Content="Download" HorizontalAlignment="Left" Margin="0,10,0,10" Click="DownloadButton_Click" />
+            <TextBlock Text="Download Progress" />
+            <ProgressBar x:Name="progressBar" Minimum="0" Maximum="100" Height="20" />
+            <TextBlock x:Name="progressText" />
 
         </StackPanel>
 

@@ -196,6 +196,11 @@ namespace YoutubeDownloader
             {
                 e.Cancel = true; //Canceling the generation of Title (Some titles are crazy long)
             }
+
+            if (e.PropertyName == "Url")
+            {
+                e.Cancel = true; //same for Url
+            }
         }
     }
 
