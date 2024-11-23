@@ -20,6 +20,7 @@ using Microsoft.Win32;
 using System.Net.Http;
 using Path = System.IO.Path;
 using YoutubeExplode.Videos;
+using System.Text.RegularExpressions;
 
 namespace YoutubeDownloader
 {
@@ -66,8 +67,14 @@ namespace YoutubeDownloader
                         return;
                     }
 
+
+                    
+                    string tempDirectory = Path.GetTempPath(); // System temp folder
+                    string videoPath = Path.Combine(tempDirectory, "video.mp4");
+                    string audioPath = Path.Combine(tempDirectory, "audio.mp4");
+
                     //Downloading Stream
-                    /*bool success = await StreamVideoMp4(_url, tempAudioPath, tempVideoPath, ffmpegPath, filePath, _streamInfo);
+                    bool success = await DownloadAndCombineAsync(_streamInfo, videoPath, audioPath, ffmpegPath, filePath, progressBar, progressText);
                     if (success)
                     {
                         MessageBox.Show("Download complete!", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
@@ -75,12 +82,8 @@ namespace YoutubeDownloader
                     else
                     {
                         MessageBox.Show("Download Failed", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                    } */
-                    string tempDirectory = Path.GetTempPath(); // System temp folder
-                    string videoPath = Path.Combine(tempDirectory, "video.mp4");
-                    string audioPath = Path.Combine(tempDirectory, "audio.mp4");
+                    }
 
-                    await DownloadAndCombineAsync(_streamInfo, videoPath, audioPath ,ffmpegPath, filePath, progressBar, progressText);
 
 
                 }
@@ -90,81 +93,6 @@ namespace YoutubeDownloader
                 MessageBox.Show($"Error: {ex.Message}", "Download Failed", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
-
-
-        public static async Task<bool> StreamVideoMp4(string url, string audioPath, string videoPath, string ffmpegPath, string outputPath, StreamInfo stream)
-        {
-
-
-
-            try
-            {
-                var youtube = new YoutubeClient();
-                var streamManifest = await youtube.Videos.Streams.GetManifestAsync(url);
-
-                // Download video
-
-                var streamInfoAudio = streamManifest.GetAudioOnlyStreams().GetWithHighestBitrate();
-                var streamInfoVideo = streamManifest.GetVideoOnlyStreams().Where(s => s.Bitrate == stream.Bitrate);
-
-
-                var videoDownloadTask = youtube.Videos.Streams.DownloadAsync(streamInfoVideo.First(), videoPath).AsTask();
-                var audioDownloadTask = youtube.Videos.Streams.DownloadAsync(streamInfoAudio, audioPath).AsTask();
-
-                await Task.WhenAll(videoDownloadTask, audioDownloadTask);
-
-                // Mux streams using FFmpeg
-                if (string.IsNullOrEmpty(ffmpegPath) || !IsFfmpegValid(ffmpegPath))
-                {
-                    MessageBox.Show("Invalid FFmpeg path.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                    return false;
-                }
-
-                var ffmpegArguments = $"-i \"{videoPath}\" -i \"{audioPath}\" -c:v copy -c:a aac -preset fast \"{outputPath}.mp4\"";
-
-                var process = new Process
-                {
-                    StartInfo = new ProcessStartInfo
-                    {
-                        FileName = ffmpegPath,
-                        Arguments = ffmpegArguments,
-                        RedirectStandardOutput = true,
-                        RedirectStandardError = true,
-                        UseShellExecute = false,
-                        CreateNoWindow = true
-                    }
-                };
-
-                process.Start();
-
-                // Read output/error asynchronously
-                var outputTask = process.StandardOutput.ReadToEndAsync();
-                var errorTask = process.StandardError.ReadToEndAsync();
-
-                await process.WaitForExitAsync();
-                var output = await outputTask;
-                var error = await errorTask;
-
-                if (process.ExitCode != 0)
-                {
-                    MessageBox.Show($"FFmpeg failed: {error}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                    return false; // Signal failure
-                }
-
-                // Clean up temporary files
-                if (File.Exists(videoPath)) File.Delete(videoPath);
-                if (File.Exists(audioPath)) File.Delete(audioPath);
-
-                MessageBox.Show("Download and muxing complete.", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
-                return true; // Signal success
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Error: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                return false; // Signal failure
-            }
-        }
-
 
         public static bool IsFfmpegInstalled(out string ffmpegPath)
         {
@@ -275,38 +203,24 @@ namespace YoutubeDownloader
         }
 
 
-        public async Task DownloadStream(IStreamInfo streamInfo, string downloadPath, IProgress<double> progressReporter, TextBlock progressText)
+        private async Task MuxStreamsWithFileSizeTracking(
+            string videoPath,
+            string audioPath,
+            string ffmpegPath,
+            string outputPath,
+            ProgressBar progressBar,
+            TextBlock progressText,
+            long totalInputSize)
         {
-            var youtube = new YoutubeClient();
+            var muxingArguments = $"-i \"{videoPath}\" -i \"{audioPath}\" -c:v copy -c:a aac -preset fast \"{outputPath}\"";
 
-            // Download with progress reporting
-            await youtube.Videos.Streams.DownloadAsync(streamInfo, downloadPath, progressReporter);
-
-        }
-
-
-        public async Task MuxStreamsWithFileSizeTracking(
-        string videoPath,
-        string audioPath,
-        string ffmpegPath,
-        string outputPath,
-        ProgressBar progressBar,
-        TextBlock progressText)
-        {
-            string outputFilePath = $"{outputPath}.mp4";
-            var ffmpegArguments = $"-i \"{videoPath}\" -i \"{audioPath}\" -c:v copy -c:a aac -preset fast \"{outputFilePath}\"";
-
-            // Calculate total input size for tracking
-            var totalInputSize = new FileInfo(videoPath).Length + new FileInfo(audioPath).Length;
-
-            var process = new Process
+            using var process = new Process
             {
                 StartInfo = new ProcessStartInfo
                 {
                     FileName = ffmpegPath,
-                    Arguments = ffmpegArguments,
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
+                    Arguments = muxingArguments,
+                    RedirectStandardError = true, // FFmpeg outputs progress to STDERR
                     UseShellExecute = false,
                     CreateNoWindow = true
                 }
@@ -314,65 +228,41 @@ namespace YoutubeDownloader
 
             process.Start();
 
-            // Track file size progress while FFmpeg is running
-            var trackingTask = TrackMuxingProgress(outputFilePath, totalInputSize, progressBar, progressText);
+            // Regex to parse FFmpeg's progress output
+            var regex = new Regex(@"frame=.*time=(\d{2}:\d{2}:\d{2})");
+            var outputFileInfo = new FileInfo(outputPath);
 
-            // Wait for FFmpeg to complete
-            await Task.WhenAll(process.WaitForExitAsync(), trackingTask);
-
-            if (!process.HasExited)
+            // Track progress
+            using var reader = process.StandardError;
+            while (!reader.EndOfStream)
             {
-                process.Kill();
-                throw new Exception("FFmpeg did not complete successfully.");
-            }
+                var line = await reader.ReadLineAsync();
 
-            if (process.ExitCode != 0)
-            {
-                throw new Exception("FFmpeg encountered an error during muxing.");
-            }
-        }
+                // Check the output file size for progress
+                outputFileInfo.Refresh(); // Refresh the file info to get the latest size
+                long currentSize = outputFileInfo.Exists ? outputFileInfo.Length : 0;
 
-        
+                double progress = (double)currentSize / totalInputSize * 100;
 
-        private bool IsFileLocked(string filePath)
-        {
-            try
-            {
-                using (FileStream fs = File.Open(filePath, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
+                // Update the UI
+                Dispatcher.Invoke(() =>
                 {
-                    return false;
-                }
+                    progressBar.Value = progress;
+                    progressText.Text = $"Muxing progress: {progress:F2}%";
+                });
             }
-            catch (IOException)
+
+            await process.WaitForExitAsync();
+
+            // Ensure progress is set to 100% when muxing completes
+            Dispatcher.Invoke(() =>
             {
-                return true;
-            }
+                progressBar.Value = 100;
+                progressText.Text = "Muxing complete!";
+            });
         }
 
-        private async Task RetryDeleteFileAsync(string filePath, int maxRetries = 5, int delayMilliseconds = 500)
-        {
-            for (int i = 0; i < maxRetries; i++)
-            {
-                if (!IsFileLocked(filePath))
-                {
-                    try
-                    {
-                        File.Delete(filePath);
-                        return;
-                    }
-                    catch (IOException ex)
-                    {
-                        // Handle specific delete exceptions if needed
-                        if (i == maxRetries - 1) throw new Exception($"Failed to delete file: {filePath}", ex);
-                    }
-                }
-
-                // Wait before retrying
-                await Task.Delay(delayMilliseconds);
-            }
-        }
-
-        public async Task DownloadAndCombineAsync(
+        public async Task<bool> DownloadAndCombineAsync(
             StreamInfo streamInfo,
             string videoPath,
             string audioPath,
@@ -380,6 +270,9 @@ namespace YoutubeDownloader
             string outputPath,
             ProgressBar progressBar,
             TextBlock progressText)
+        {
+
+            try
             {
                 // Progress for downloading video and audio streams
                 var videoDownloadProgress = new Progress<double>(p =>
@@ -413,11 +306,19 @@ namespace YoutubeDownloader
 
                 await Task.WhenAll(videoDownloadTask, audioDownloadTask);
 
+
                 // Set progress bar to 100% for downloads
                 Dispatcher.Invoke(() =>
                 {
                     progressBar.Value = 100;
                     progressText.Text = "Download complete. Muxing streams...";
+                });
+
+                // Reset progress bar for muxing
+                Dispatcher.Invoke(() =>
+                {
+                    progressBar.Value = 0;
+                    progressText.Text = "Muxing streams...";
                 });
 
                 // Muxing progress
@@ -435,91 +336,19 @@ namespace YoutubeDownloader
                 // Clean up temporary files
                 File.Delete(videoPath);
                 File.Delete(audioPath);
+                return true;
             }
-
-
-
-        private async Task TrackMuxingProgress(
-            string outputFilePath,
-            long totalInputSize,
-            ProgressBar progressBar,
-            TextBlock progressText)
+            catch (Exception ex)
             {
-                const int updateInterval = 500; // Check progress every 500ms
-
-                while (true)
-                {
-                    // Break if the file is complete
-                    if (File.Exists(outputFilePath) && new FileInfo(outputFilePath).Length >= totalInputSize)
-                        break;
-
-                    if (File.Exists(outputFilePath))
-                    {
-                        // Calculate progress based on file size
-                        var outputSize = new FileInfo(outputFilePath).Length;
-                        var progress = (double)outputSize / totalInputSize * 100;
-
-                        Dispatcher.Invoke(() =>
-                        {
-                            progressBar.Value = progress;
-                            progressText.Text = $"Muxing: {progress:F2}% completed";
-                        });
-                    }
-
-                    await Task.Delay(updateInterval);
-                }
-
-                // Final update
                 Dispatcher.Invoke(() =>
                 {
-                    progressBar.Value = 100;
-                    progressText.Text = "Muxing Complete!";
+                    progressBar.Value = 0;
+                    progressText.Text = $"Error: {ex.Message}";
                 });
-        }
 
-        public async Task MuxStreamsWithFileSizeTracking(
-            string videoPath,
-            string audioPath,
-            string ffmpegPath,
-            string outputPath,
-            ProgressBar progressBar,
-            TextBlock progressText,
-            long totalInputSize)
-        {
-            string outputFilePath = $"{outputPath}.mp4";
-            var ffmpegArguments = $"-i \"{videoPath}\" -i \"{audioPath}\" -c:v copy -c:a aac -preset fast \"{outputFilePath}\"";
-
-            var process = new Process
-            {
-                StartInfo = new ProcessStartInfo
-                {
-                    FileName = ffmpegPath,
-                    Arguments = ffmpegArguments,
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
-                    UseShellExecute = false,
-                    CreateNoWindow = true
-                }
-            };
-
-            process.Start();
-
-            // Track file size progress while FFmpeg is running
-            var trackingTask = TrackMuxingProgress(outputFilePath, totalInputSize, progressBar, progressText);
-
-            // Wait for FFmpeg to complete
-            await Task.WhenAll(process.WaitForExitAsync(), trackingTask);
-
-            if (!process.HasExited)
-            {
-                process.Kill();
-                throw new Exception("FFmpeg did not complete successfully.");
-            }
-
-            if (process.ExitCode != 0)
-            {
-                throw new Exception("FFmpeg encountered an error during muxing.");
+                return false;
             }
         }
+
     }
 }
