@@ -55,7 +55,7 @@ namespace YoutubeDownloader
 
         private void urldata_GotFocus(object sender, RoutedEventArgs e)
         {
-            if (urldata.Text == "Enter URL Here")
+            if (urldata.Text == "Enter URL Here" || urldata.Text == "Video Loaded!")
             {
 
                 urldata.Text = "";
@@ -180,7 +180,7 @@ namespace YoutubeDownloader
             if (sender is System.Windows.Controls.DataGrid dataGrid && dataGrid.SelectedItem is StreamInfo stream)
             {
                 string title = videoTitle;
-                var detailsWindow = new Download_Details(stream, title, savedURL);
+                var detailsWindow = new Video_Download_Details(stream, title, savedURL);
                 detailsWindow.Show();
             }
         }
@@ -190,7 +190,7 @@ namespace YoutubeDownloader
             if (sender is System.Windows.Controls.DataGrid dataGrid && dataGrid.SelectedItem is StreamInfo stream)
             {
                 string title = videoTitle;
-                var detailsWindow = new Download_Details(stream, title, savedURL);
+                var detailsWindow = new Audio_Download_Details(stream, title, savedURL);
                 detailsWindow.Show();
             }
         }

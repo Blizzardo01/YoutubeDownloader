@@ -24,13 +24,13 @@ using System.Text.RegularExpressions;
 
 namespace YoutubeDownloader
 {
-    public partial class Download_Details : Window
+    public partial class Video_Download_Details : Window
     {
         private readonly StreamInfo _streamInfo;
         private readonly string _title;
         private readonly string _url;
 
-        public Download_Details(StreamInfo stream, string title, string url)
+        public Video_Download_Details(StreamInfo stream, string title, string url)
         {
             InitializeComponent();
             _streamInfo = stream;
@@ -44,7 +44,6 @@ namespace YoutubeDownloader
         {
             try
             {
-                string res = _streamInfo.Resolution.ToString();
 
                 //Choose a file path for saving
                 var saveFileDialog = new Microsoft.Win32.SaveFileDialog
@@ -128,7 +127,7 @@ namespace YoutubeDownloader
             }
         }
 
-        private string LocateFfmpegPath()
+        public static string LocateFfmpegPath()
         {
             // Check if FFmpeg is already in PATH
             if (IsFfmpegInstalled(out string pathInPath))
