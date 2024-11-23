@@ -44,6 +44,7 @@ namespace YoutubeDownloader
         {
             try
             {
+                string res = _streamInfo.Resolution.ToString();
 
                 //Choose a file path for saving
                 var saveFileDialog = new Microsoft.Win32.SaveFileDialog
@@ -57,7 +58,7 @@ namespace YoutubeDownloader
                 if (saveFileDialog.ShowDialog() == true)
                 {
 
-                    var filePath = saveFileDialog.FileName;
+                    string filePath = saveFileDialog.FileName;
 
                     //grabbing FFmpeg Path
                     string ffmpegPath = LocateFfmpegPath();
@@ -153,7 +154,6 @@ namespace YoutubeDownloader
                 // Validate the selected file is FFmpeg
                 if (IsFfmpegValid(selectedPath))
                 {
-                    MessageBox.Show($"FFmpeg manually selected: {selectedPath}", "FFmpeg Detected");
                     return selectedPath; //returns the manually selected path
                 }
 
@@ -182,13 +182,12 @@ namespace YoutubeDownloader
                 };
 
                 process.Start();
-                string output = process.StandardOutput.ReadToEnd();
+
                 string error = process.StandardError.ReadToEnd();
                 process.WaitForExit();
 
                 if (process.ExitCode == 0)
                 {
-                    MessageBox.Show($"FFmpeg validation passed:\n{output}", "FFmpeg Valid");
                     return true;
                 }
 
@@ -212,7 +211,7 @@ namespace YoutubeDownloader
             TextBlock progressText,
             long totalInputSize)
         {
-            var muxingArguments = $"-i \"{videoPath}\" -i \"{audioPath}\" -c:v copy -c:a aac -preset fast \"{outputPath}\"";
+            var muxingArguments = $"-i \"{videoPath}\" -i \"{audioPath}\" -c:v copy -c:a aac -preset fast \"{outputPath}.mp4\"";
 
             using var process = new Process
             {

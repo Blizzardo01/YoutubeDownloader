@@ -187,7 +187,12 @@ namespace YoutubeDownloader
 
         private void AudioGrid_MouseDoubleClick(object sender, MouseButtonEventArgs e)
         {
-
+            if (sender is System.Windows.Controls.DataGrid dataGrid && dataGrid.SelectedItem is StreamInfo stream)
+            {
+                string title = videoTitle;
+                var detailsWindow = new Download_Details(stream, title, savedURL);
+                detailsWindow.Show();
+            }
         }
 
         private void DataGrid_AutoGeneratingColumn(object sender, DataGridAutoGeneratingColumnEventArgs e)
