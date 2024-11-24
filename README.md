@@ -18,6 +18,7 @@ Perfect for enjoying your favorite content for offline use.
 1. [.NET Runtime](https://dotnet.microsoft.com/download) version 6.0 or higher.
 2. Install required NuGet packages:
   - [YoutubeExplode](https://github.com/Tyrrrz/YoutubeExplode) (for video/audio download).
+  - [YoutubeExplode.Converter](https://github.com/Tyrrrz/YoutubeExplode.Converter) (for Muxing streams into one file).
   - [Newtonsoft.Json](https://www.newtonsoft.com/json) (for JSON-based settings persistence).
   - [HtmlAgilityPack](https://html-agility-pack.net/download) (for HTML parsing).
 3. Restore NuGet dependencies using the command:
@@ -49,6 +50,7 @@ just follow these steps:
 ```
 ## Acknowledgments
 - [YoutubeExplode](https://github.com/Tyrrrz/YoutubeExplode) for YouTube interaction.
+- [YoutubeExplode.Converter](https://github.com/Tyrrrz/YoutubeExplode.Converter)
 - [Newtonsoft.Json](https://www.newtonsoft.com/json) for JSON handling.
 - [HtmlAgilityPack](https://html-agility-pack.net/download) for HTML parsing.
 - FFmpeg for media processing.
