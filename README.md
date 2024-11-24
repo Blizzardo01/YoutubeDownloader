@@ -27,11 +27,11 @@ Perfect for enjoying your favorite content for offline use.
 
 ## Configuration
 
-You can customize the save path by editing the `config.json` file located in the application folder:
+You can customize the ffmpeg file path by editing the `config.json` file located in the application folder:
 
 ```json
 {
-  "SavedPath": "C:\\Users\\YourName\\Videos"
+  "FFmpeg": "C:\\Users\\YourName\\FFmpegPathHere"
 }
 ```
 
