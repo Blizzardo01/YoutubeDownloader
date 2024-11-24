@@ -36,9 +36,11 @@ You can customize the ffmpeg file path by editing the `config.json` file located
 ```
 
 #### Contributing
-```markdown
+
 If you wish to add, change or modify this project, go for it!,
 just follow these steps:
+
+```markdown
 1. Fork this repository.
 2. Create a new branch (`git checkout -b feature/YourFeature`).
 3. Commit your changes (`git commit -m 'Add YourFeature'`).
