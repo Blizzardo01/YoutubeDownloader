@@ -5,8 +5,8 @@ YouTube Downloader is an easy-to-use GUI application that allows you to download
 Perfect for enjoying your favorite content for offline use.
 
 ### Key Features:
--Download videos in various stream qualities
--Download audio in various bitrates
+- Download videos in various stream qualities
+- Download audio in various bitrates
 
 ## Installation Requirements
 
