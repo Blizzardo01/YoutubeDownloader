@@ -1,4 +1,4 @@
-#Youtube Downloader
+# Youtube Downloader
 
 ## Description
 YouTube Downloader is an easy-to-use GUI application that allows you to download YouTube videos or extract audio seamlessly. 
