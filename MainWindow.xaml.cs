@@ -79,6 +79,8 @@ namespace YoutubeDownloader
         {
             if (e.Key == Key.Enter)
             {
+                VideoStreams.Clear();
+                AudioStreams.Clear();
 
                 savedURL = urldata.Text;
                 urldata.Text = "Loading Video Information...";

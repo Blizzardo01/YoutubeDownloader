@@ -21,9 +21,40 @@ using System.Net.Http;
 using Path = System.IO.Path;
 using YoutubeExplode.Videos;
 using System.Text.RegularExpressions;
+using System.Xml;
+using Newtonsoft.Json;
 
 namespace YoutubeDownloader
 {
+
+    public static class PathManager
+    {
+        private const string ConfigFile = "config.json";
+
+        public static string GetPath()
+        {
+            if (File.Exists(ConfigFile))
+            {
+                var settings = JsonConvert.DeserializeObject<Settings>(File.ReadAllText(ConfigFile));
+                return settings?.SavedPath;
+            }
+            return null;
+        }
+
+        public static void SavePath(string path)
+        {
+            var settings = new Settings { SavedPath = path };
+            File.WriteAllText(ConfigFile, JsonConvert.SerializeObject(settings, Newtonsoft.Json.Formatting.Indented));
+        }
+
+    }
+
+    public class Settings
+    {
+        public string SavedPath { get; set; }
+    }
+
+
     public partial class Video_Download_Details : Window
     {
         private readonly StreamInfo _streamInfo;
@@ -60,7 +91,8 @@ namespace YoutubeDownloader
                     string filePath = saveFileDialog.FileName;
 
                     //grabbing FFmpeg Path
-                    string ffmpegPath = LocateFfmpegPath();
+                    string ffmpegPath = await LocateFfmpegPath();
+                    Debug.WriteLine(ffmpegPath);
                     if (string.IsNullOrEmpty(ffmpegPath))
                     {
                         MessageBox.Show("FFmpeg path not selected. Operation canceled.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
@@ -68,7 +100,7 @@ namespace YoutubeDownloader
                     }
 
 
-                    
+
                     string tempDirectory = Path.GetTempPath(); // System temp folder
                     string videoPath = Path.Combine(tempDirectory, "video.mp4");
                     string audioPath = Path.Combine(tempDirectory, "audio.mp4");
@@ -127,7 +159,7 @@ namespace YoutubeDownloader
             }
         }
 
-        public static string LocateFfmpegPath()
+        public async Task<string> LocateFfmpegPath()
         {
             // Check if FFmpeg is already in PATH
             if (IsFfmpegInstalled(out string pathInPath))
@@ -137,30 +169,21 @@ namespace YoutubeDownloader
 
             }
 
+            string savedPath = await GetUserPath();
 
-            //ask the user to locate FFmpeg manually
-            var openFileDialog = new OpenFileDialog
+            if (!string.IsNullOrEmpty(savedPath))
             {
-                Filter = "Executable files (*.exe)|*.exe",
-                Title = "Locate FFmpeg Executable"
-            };
-
-            if (openFileDialog.ShowDialog() == true)
-            {
-                string selectedPath = openFileDialog.FileName;
-
-
                 // Validate the selected file is FFmpeg
-                if (IsFfmpegValid(selectedPath))
+                if (IsFfmpegValid(savedPath))
                 {
-                    return selectedPath; //returns the manually selected path
+                    return savedPath; //returns the manually selected path
                 }
-
-                MessageBox.Show("The selected file is not a valid FFmpeg executable.", "Invalid FFmpeg", MessageBoxButton.OK, MessageBoxImage.Error);
             }
 
+            MessageBox.Show("The selected file is not a valid FFmpeg executable.", "Invalid FFmpeg", MessageBoxButton.OK, MessageBoxImage.Error);
             return null; // No valid FFmpeg path provided
         }
+
 
 
         private static bool IsFfmpegValid(string ffmpegPath)
@@ -347,6 +370,31 @@ namespace YoutubeDownloader
                 return false;
             }
         }
+
+
+        public async Task<string> GetUserPath()
+        {
+            string savedPath = PathManager.GetPath();
+
+            if (string.IsNullOrEmpty(savedPath))
+            {
+                // Show file dialog to get the path
+                var dialog = new OpenFileDialog
+                {
+                    Title = "Locate FFmpeg File Path",
+                    Filter = "Executable files (*.exe)|*.exe"
+                };
+
+                if (dialog.ShowDialog() == true)
+                {
+                    savedPath = dialog.FileName;
+                    PathManager.SavePath(savedPath); // Save for future use
+                }
+            }
+
+            return savedPath;
+        }
+
 
     }
 }
